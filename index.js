@@ -11,6 +11,79 @@ exports.handler = async (event) => {
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Allow-Methods": "OPTIONS,GET"
     };
+    
+    const authHeader = event.headers.Authorization;
+    if (!authHeader) {
+        return {
+        statusCode: 401,
+        body: JSON.stringify({
+            message: "Unauthorized",
+            action: "getPokerGames",
+        }),
+        headers: headerTemplate,
+        };
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+        return {
+        statusCode: 401,
+        body: JSON.stringify({
+            message: "Unauthorized",
+            action: "getPokerGames",
+        }),
+        headers: headerTemplate,
+        };
+    }
+
+    let verifiedUserId = undefined;
+    try {
+        const res = await fetch(
+        //error 500
+        "https://oqqznkdgb3.execute-api.us-east-1.amazonaws.com/dev/validate_token",
+        {
+            method: "GET",
+            headers: {
+            Authorization: `Bearer ${token}`,
+            },
+        }
+        );
+        console.log("Response:", res);
+        if (res.status === 200) {
+        const data = await res.json();
+        verifiedUserId = data.user.username;
+        } else {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+            message: "Failed to validate token",
+            action: "getPokerGames",
+            }),
+            headers: headerTemplate,
+        };
+        }
+    } catch (err) {
+        console.error("Error validating token:", err);
+        return {
+        statusCode: 500,
+        body: JSON.stringify({
+            message: "Failed to validate token",
+            action: "getPokerGames",
+        }),
+        headers: headerTemplate,
+        };
+    }
+
+    if (!verifiedUserId) {
+        return {
+            statusCode: 401,
+            body: JSON.stringify({
+                message: "Unauthorized",
+                action: "getPokerGames",
+            }),
+            headers: headerTemplate,
+        }; 
+    }
 
     if (!groupId) {
         return {
